@@ -1,4 +1,4 @@
-﻿local UI = (function()
+local UI = (function()
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -1074,4 +1074,3 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
-
