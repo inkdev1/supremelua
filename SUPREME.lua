@@ -149,18 +149,9 @@ local function CreateWindow(config)
         BackgroundTransparency = 1,
         ScrollBarThickness = 4,
         ScrollBarImageColor3 = Theme.Stroke,
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0),
     })
     Content.Parent = MainFrame
-
-    Make("UIPadding", {
-        PaddingTop = UDim.new(0, 8),
-        PaddingBottom = UDim.new(0, 12),
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
-        Parent = Content,
-    })
 
     local dragging = false
     local dragOffset = Vector2.zero
@@ -207,6 +198,7 @@ local function CreateWindow(config)
             t.TabButton.TextColor3 = active and Color3.new(1, 1, 1) or Theme.SubText
         end
         Content.CanvasPosition = Vector2.zero
+        Content.CanvasSize = UDim2.new(0, 0, 0, tab.Page.AbsoluteSize.Y)
     end
 
     function _window:CreateTab(tabName)
@@ -214,7 +206,7 @@ local function CreateWindow(config)
             Name = tabName,
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
-            AutomaticSize = Enum.AutomaticSize.Y,
+            Position = UDim2.new(0, 0, 0, 0),
         })
         page.Parent = self.Content
 
@@ -224,6 +216,23 @@ local function CreateWindow(config)
             Padding = UDim.new(0, 8),
         })
         layout.Parent = page
+        Make("UIPadding", {
+            PaddingTop = UDim.new(0, 8),
+            PaddingBottom = UDim.new(0, 8),
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4),
+            Parent = page,
+        })
+
+        local function sizePage()
+            local h = layout.AbsoluteContentSize.Y + 16
+            page.Size = UDim2.new(1, 0, 0, h)
+            if page.Visible then
+                Content.CanvasSize = UDim2.new(0, 0, 0, page.AbsoluteSize.Y)
+            end
+        end
+        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(sizePage)
+        task.defer(sizePage)
 
         local tabBtn = Make("TextButton", {
             Text = tabName,
