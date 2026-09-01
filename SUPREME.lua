@@ -305,6 +305,7 @@ local function CreateWindow(config)
                 BackgroundColor3 = Theme.Element,
                 Size = UDim2.new(1, 0, 0, 34),
                 LayoutOrder = self.ElementCount,
+                Active = true,
                 Parent = self.Page,
             })
             Corner(row, 7)
@@ -357,8 +358,11 @@ local function CreateWindow(config)
                 end
                 task.defer(function() lock = false end)
             end
-            row.MouseButton1Click:Connect(fire)
-            switch.MouseButton1Click:Connect(fire)
+            row.InputBegan:Connect(function(input, gProcessed)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 and not gProcessed then
+                    fire()
+                end
+            end)
 
             row.MouseEnter:Connect(function()
                 TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = Theme.ElementHover }):Play()
@@ -430,6 +434,7 @@ local function CreateWindow(config)
                 Position = UDim2.new(0.5, 0, 1, -18),
                 AnchorPoint = Vector2.new(0.5, 0),
                 BackgroundColor3 = Theme.Section,
+                Active = true,
                 Parent = row,
             })
             Corner(track, 4)
