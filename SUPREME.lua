@@ -190,7 +190,10 @@ local function CreateWindow(config)
         ScreenGui.Enabled = v
     end
 
+    local activeTab = nil
+
     local function ShowTab(tab)
+        activeTab = tab
         for _, t in ipairs(_window.Tabs) do
             local active = t == tab
             t.Page.Visible = active
@@ -198,8 +201,16 @@ local function CreateWindow(config)
             t.TabButton.TextColor3 = active and Color3.new(1, 1, 1) or Theme.SubText
         end
         Content.CanvasPosition = Vector2.zero
-        Content.CanvasSize = UDim2.new(0, 0, 0, tab.Page.AbsoluteSize.Y)
     end
+
+    RunService.RenderStepped:Connect(function()
+        if activeTab and activeTab.Page and activeTab.Page.Visible then
+            local h = activeTab.Page.UIListLayout.AbsoluteContentSize.Y + 16
+            if h < 20 then h = 20 end
+            activeTab.Page.Size = UDim2.new(1, 0, 0, h)
+            Content.CanvasSize = UDim2.new(0, 0, 0, h)
+        end
+    end)
 
     function _window:CreateTab(tabName)
         local page = Make("Frame", {
@@ -211,6 +222,7 @@ local function CreateWindow(config)
         page.Parent = self.Content
 
         local layout = Make("UIListLayout", {
+            Name = "UIListLayout",
             SortOrder = Enum.SortOrder.LayoutOrder,
             HorizontalAlignment = Enum.HorizontalAlignment.Center,
             Padding = UDim.new(0, 8),
@@ -223,16 +235,6 @@ local function CreateWindow(config)
             PaddingRight = UDim.new(0, 4),
             Parent = page,
         })
-
-        local function sizePage()
-            local h = layout.AbsoluteContentSize.Y + 16
-            page.Size = UDim2.new(1, 0, 0, h)
-            if page.Visible then
-                Content.CanvasSize = UDim2.new(0, 0, 0, page.AbsoluteSize.Y)
-            end
-        end
-        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(sizePage)
-        task.defer(sizePage)
 
         local tabBtn = Make("TextButton", {
             Text = tabName,
@@ -534,6 +536,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Stats = game:GetService("Stats")
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
 local OriginalAmbient = Lighting.Ambient
@@ -816,32 +819,69 @@ local function GetClosestTarget()
     return target
 end
 
+local function ReportError(label, err)
+    task.spawn(function()
+        local sg = Instance.new("ScreenGui")
+        sg.ResetOnSpawn = false
+        sg.IgnoreGuiInset = true
+        local fr = Instance.new("Frame", sg)
+        fr.Size = UDim2.new(0, 480, 0, 80)
+        fr.Position = UDim2.new(0.5, -240, 0.5, -40)
+        fr.BackgroundColor3 = Color3.fromRGB(40, 12, 12)
+        Instance.new("UICorner", fr).CornerRadius = UDim.new(0, 8)
+        local lb = Instance.new("TextLabel", fr)
+        lb.Size = UDim2.new(1, -12, 1, -12)
+        lb.Position = UDim2.fromOffset(6, 6)
+        lb.BackgroundTransparency = 1
+        lb.TextColor3 = Color3.new(1, 1, 1)
+        lb.Font = Enum.Font.Gotham
+        lb.TextSize = 12
+        lb.TextWrapped = true
+        lb.TextXAlignment = Enum.TextXAlignment.Left
+        lb.TextYAlignment = Enum.TextYAlignment.Top
+        lb.Text = label .. "\n" .. tostring(err)
+        sg.Parent = CoreGui
+        task.wait(10)
+        sg:Destroy()
+    end)
+end
+
 local Window = UI.CreateWindow({ Name = "SUPREME HUB" })
 
 local CombatTab = Window:CreateTab("Combat")
 local VisualsTab = Window:CreateTab("Visuals")
 
-CombatTab:CreateSection("Aimbot")
-CombatTab:CreateToggle({ Name = "Aimbot", CurrentValue = false, stateKey = "Aimbot_Enabled", Callback = function(v) S.Aimbot_Enabled = v end })
-CombatTab:CreateSection("Aimbot Settings")
-CombatTab:CreateToggle({ Name = "Aimbot Wall Check", CurrentValue = true, Callback = function(v) S.Aimbot_WallCheck = v end })
-CombatTab:CreateToggle({ Name = "Aimbot Targets NPCs", CurrentValue = false, Callback = function(v) S.Aimbot_Target_NPCs = v end })
-CombatTab:CreateToggle({ Name = "Aimbot Prediction", CurrentValue = false, Callback = function(v) S.Prediction_Enabled = v end })
-CombatTab:CreateSlider({ Name = "Bullet Speed", Range = { 100, 5000 }, Increment = 50, CurrentValue = 1500, Callback = function(v) S.Bullet_Speed = v end })
-CombatTab:CreateSlider({ Name = "Aimbot Smoothing", Range = { 0.05, 1 }, Increment = 0.05, CurrentValue = 0.2, Callback = function(v) S.Aim_Smoothing = v end })
-CombatTab:CreateSlider({ Name = "FOV Radius", Range = { 50, 800 }, Increment = 10, CurrentValue = 150, Callback = function(v) S.Aim_FOV = v end })
-CombatTab:CreateToggle({ Name = "Show FOV Circle", CurrentValue = false, Callback = function(v) S.Show_FOV = v end })
+local uiOK, uiErr = pcall(function()
+    CombatTab:CreateSection("Aimbot")
+    CombatTab:CreateToggle({ Name = "Aimbot", CurrentValue = false, stateKey = "Aimbot_Enabled", Callback = function(v) S.Aimbot_Enabled = v end })
+    CombatTab:CreateSection("Aimbot Settings")
+    CombatTab:CreateToggle({ Name = "Aimbot Wall Check", CurrentValue = true, Callback = function(v) S.Aimbot_WallCheck = v end })
+    CombatTab:CreateToggle({ Name = "Aimbot Targets NPCs", CurrentValue = false, Callback = function(v) S.Aimbot_Target_NPCs = v end })
+    CombatTab:CreateToggle({ Name = "Aimbot Prediction", CurrentValue = false, Callback = function(v) S.Prediction_Enabled = v end })
+    CombatTab:CreateSlider({ Name = "Bullet Speed", Range = { 100, 5000 }, Increment = 50, CurrentValue = 1500, Callback = function(v) S.Bullet_Speed = v end })
+    CombatTab:CreateSlider({ Name = "Aimbot Smoothing", Range = { 0.05, 1 }, Increment = 0.05, CurrentValue = 0.2, Callback = function(v) S.Aim_Smoothing = v end })
+    CombatTab:CreateSlider({ Name = "FOV Radius", Range = { 50, 800 }, Increment = 10, CurrentValue = 150, Callback = function(v) S.Aim_FOV = v end })
+    CombatTab:CreateToggle({ Name = "Show FOV Circle", CurrentValue = false, Callback = function(v) S.Show_FOV = v end })
 
-VisualsTab:CreateSection("Players")
-VisualsTab:CreateToggle({ Name = "Player ESP", CurrentValue = false, stateKey = "ESP_Enabled", Callback = function(v) S.ESP_Enabled = v end })
-VisualsTab:CreateToggle({ Name = "ESP Tracers", CurrentValue = false, Callback = function(v) S.Tracers_Enabled = v end })
-VisualsTab:CreateSection("NPCs")
-VisualsTab:CreateToggle({ Name = "NPC ESP", CurrentValue = false, stateKey = "NPC_ESP_Enabled", Callback = function(v) S.NPC_ESP_Enabled = v end })
-VisualsTab:CreateToggle({ Name = "NPC ESP Tracers", CurrentValue = false, Callback = function(v) S.NPC_Tracers_Enabled = v end })
-VisualsTab:CreateSlider({ Name = "NPC ESP Max Distance", Range = { 50, 5000 }, Increment = 50, CurrentValue = 1500, Callback = function(v) S.NPC_ESP_MaxDistance = v end })
-VisualsTab:CreateSection("Extras")
-VisualsTab:CreateToggle({ Name = "Fullbright", CurrentValue = false, stateKey = "Fullbright_Enabled", Callback = function(v) S.Fullbright_Enabled = v end })
-VisualsTab:CreateToggle({ Name = "Watermark", CurrentValue = false, stateKey = "Watermark_Enabled", Callback = function(v) S.Watermark_Enabled = v end })
+    VisualsTab:CreateSection("Players")
+    VisualsTab:CreateToggle({ Name = "Player ESP", CurrentValue = false, stateKey = "ESP_Enabled", Callback = function(v) S.ESP_Enabled = v end })
+    VisualsTab:CreateToggle({ Name = "ESP Tracers", CurrentValue = false, Callback = function(v) S.Tracers_Enabled = v end })
+    VisualsTab:CreateSection("NPCs")
+    VisualsTab:CreateToggle({ Name = "NPC ESP", CurrentValue = false, stateKey = "NPC_ESP_Enabled", Callback = function(v) S.NPC_ESP_Enabled = v end })
+    VisualsTab:CreateToggle({ Name = "NPC ESP Tracers", CurrentValue = false, Callback = function(v) S.NPC_Tracers_Enabled = v end })
+    VisualsTab:CreateSlider({ Name = "NPC ESP Max Distance", Range = { 50, 5000 }, Increment = 50, CurrentValue = 1500, Callback = function(v) S.NPC_ESP_MaxDistance = v end })
+    VisualsTab:CreateSection("Extras")
+    VisualsTab:CreateToggle({ Name = "Fullbright", CurrentValue = false, stateKey = "Fullbright_Enabled", Callback = function(v) S.Fullbright_Enabled = v end })
+    VisualsTab:CreateToggle({ Name = "Watermark", CurrentValue = false, stateKey = "Watermark_Enabled", Callback = function(v) S.Watermark_Enabled = v end })
+end)
+
+if not uiOK then
+    ReportError("UI BUILD ERROR", uiErr)
+end
+task.defer(function()
+    task.wait(0.3)
+    ShowNotification("UI built. Elements: " .. tostring(CombatTab.ElementCount + VisualsTab.ElementCount) .. " | err=" .. tostring(uiOK))
+end)
 
 local featureBinds = {}
 local prevState = {}
