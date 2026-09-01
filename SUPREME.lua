@@ -1,21 +1,8 @@
 ﻿local UI = (function()
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local Stats = game:GetService("Stats")
-local LocalPlayer = Players.LocalPlayer
-
-local Time = tick
-
-local function GetHui(parent)
-    if syn and syn.protect_gui then
-        syn.protect_gui(parent)
-    end
-    parent.Parent = CoreGui
-end
+local CoreGui = game:GetService("CoreGui")
 
 local UI = {}
 
@@ -25,47 +12,44 @@ local Theme = {
     Section = Color3.fromRGB(45, 45, 50),
     Element = Color3.fromRGB(32, 32, 36),
     ElementHover = Color3.fromRGB(38, 38, 43),
+    ElementSelected = Color3.fromRGB(55, 90, 150),
     Stroke = Color3.fromRGB(58, 58, 64),
     Text = Color3.new(1, 1, 1),
     SubText = Color3.fromRGB(150, 150, 155),
     Accent = Color3.fromRGB(75, 150, 255),
 }
 
-local UICorner = function(parent, radius)
+local function Corner(parent, radius)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, radius)
     c.Parent = parent
     return c
 end
 
-local UIStroke = function(parent, color, thickness, transparency)
+local function Stroke(parent, color, thickness)
     local s = Instance.new("UIStroke")
     s.Color = color or Theme.Stroke
     s.Thickness = thickness or 1
-    s.Transparency = transparency or 0
     s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     s.Parent = parent
     return s
 end
 
-local Make = function(class, props)
+local function Make(class, props)
     local i = Instance.new(class)
-    for k, v in pairs(props) do
-        i[k] = v
+    if props then
+        for k, v in pairs(props) do
+            i[k] = v
+        end
     end
     return i
 end
-
-local WindowList = {}
 
 local function CreateWindow(config)
     config = config or {}
     local name = config.Name or "UI"
 
-    local _window = {
-        Tabs = {},
-        CurrentTab = nil,
-    }
+    local _window = { Tabs = {} }
 
     local ScreenGui = Make("ScreenGui", {
         Name = name .. "_UI",
@@ -76,75 +60,72 @@ local function CreateWindow(config)
     })
 
     local MainFrame = Make("Frame", {
-        Name = "Main",
-        Size = UDim2.fromOffset(360, 440),
-        Position = UDim2.new(0.5, -180, 0.5, -220),
+        Size = UDim2.fromOffset(370, 460),
+        Position = UDim2.new(0.5, -185, 0.5, -230),
         BackgroundColor3 = Theme.Background,
         ClipsDescendants = true,
-        Active = true,
     })
-    UICorner(MainFrame, 10)
-    UIStroke(MainFrame, Theme.Stroke, 1)
+    Corner(MainFrame, 10)
+    Stroke(MainFrame, Theme.Stroke, 1)
     MainFrame.Parent = ScreenGui
 
     local Topbar = Make("Frame", {
         Size = UDim2.new(1, 0, 0, 38),
         BackgroundColor3 = Theme.Topbar,
-        Active = true,
     })
-    UICorner(Topbar, 10)
+    Corner(Topbar, 10)
     Topbar.Parent = MainFrame
 
     local TopbarCorner = Make("Frame", {
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0, 18),
+        Position = UDim2.new(0, 0, 1, -4),
         BackgroundColor3 = Theme.Topbar,
+        ZIndex = 0,
     })
     TopbarCorner.Parent = Topbar
 
-    local Title = Make("TextLabel", {
+    Make("TextLabel", {
         Text = name,
-        Size = UDim2.new(1, -80, 1, 0),
+        Size = UDim2.new(1, -90, 1, 0),
         Position = UDim2.fromOffset(14, 0),
         BackgroundTransparency = 1,
         TextColor3 = Theme.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = Topbar,
     })
-    Title.Parent = Topbar
 
     local MinimizeBtn = Make("TextButton", {
         Text = "-",
         Size = UDim2.fromOffset(24, 24),
-        Position = UDim2.new(1, -54, 0.5, -12),
+        Position = UDim2.new(1, -58, 0.5, -12),
         BackgroundColor3 = Theme.Element,
         TextColor3 = Theme.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 16,
         BorderSizePixel = 0,
+        Parent = Topbar,
     })
-    UICorner(MinimizeBtn, 6)
-    MinimizeBtn.Parent = Topbar
+    Corner(MinimizeBtn, 6)
 
     local CloseBtn = Make("TextButton", {
         Text = "X",
         Size = UDim2.fromOffset(24, 24),
-        Position = UDim2.new(1, -26, 0.5, -12),
+        Position = UDim2.new(1, -28, 0.5, -12),
         BackgroundColor3 = Theme.Element,
         TextColor3 = Theme.Text,
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         BorderSizePixel = 0,
+        Parent = Topbar,
     })
-    UICorner(CloseBtn, 6)
-    CloseBtn.Parent = Topbar
+    Corner(CloseBtn, 6)
 
     local TabsFrame = Make("Frame", {
-        Size = UDim2.new(1, 0, 0, 32),
+        Size = UDim2.new(1, 0, 0, 34),
         Position = UDim2.new(0, 0, 0, 38),
         BackgroundColor3 = Theme.Background,
-        ClipsDescendants = true,
     })
     TabsFrame.Parent = MainFrame
 
@@ -156,38 +137,37 @@ local function CreateWindow(config)
     })
     TabsLayout.Parent = TabsFrame
 
-    local Content = Make("Frame", {
-        Size = UDim2.new(1, 0, 1, -70),
-        Position = UDim2.new(0, 0, 0, 70),
+    local TabsPad = Make("UIPadding", {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+    })
+    TabsPad.Parent = TabsFrame
+
+    local Content = Make("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -72),
+        Position = UDim2.new(0, 0, 0, 72),
         BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = Theme.Stroke,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
     })
     Content.Parent = MainFrame
 
-    local ContentLayout = Make("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        Padding = UDim.new(0, 8),
-    })
-    ContentLayout.Parent = Content
-
-    local ContentPadding = Make("UIPadding", {
+    Make("UIPadding", {
         PaddingTop = UDim.new(0, 8),
-        PaddingBottom = UDim.new(0, 8),
+        PaddingBottom = UDim.new(0, 12),
         PaddingLeft = UDim.new(0, 10),
         PaddingRight = UDim.new(0, 10),
+        Parent = Content,
     })
-    ContentPadding.Parent = Content
 
     local dragging = false
     local dragOffset = Vector2.zero
-
-    local function startDrag(input)
-        dragging = true
-        dragOffset = MainFrame.AbsolutePosition - UserInputService:GetMouseLocation()
-    end
     Topbar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            startDrag()
+            dragging = true
+            dragOffset = MainFrame.AbsolutePosition - UserInputService:GetMouseLocation()
         end
     end)
     Topbar.InputEnded:Connect(function(input)
@@ -197,15 +177,17 @@ local function CreateWindow(config)
     end)
     RunService.RenderStepped:Connect(function()
         if dragging then
-            MainFrame.Position = UDim2.fromOffset((UserInputService:GetMouseLocation() + dragOffset).X, (UserInputService:GetMouseLocation() + dragOffset).Y)
+            local m = UserInputService:GetMouseLocation() + dragOffset
+            MainFrame.Position = UDim2.fromOffset(m.X, m.Y)
         end
     end)
 
     local minimised = false
     MinimizeBtn.MouseButton1Click:Connect(function()
         minimised = not minimised
-        local target = minimised and UDim2.new(1, 0, 0, 38) or UDim2.new(0, 360, 0, 440)
-        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { Size = target }):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+            Size = minimised and UDim2.fromOffset(370, 38) or UDim2.fromOffset(370, 460),
+        }):Play()
     end)
     CloseBtn.MouseButton1Click:Connect(function()
         ScreenGui.Enabled = false
@@ -213,21 +195,27 @@ local function CreateWindow(config)
 
     _window.ScreenGui = ScreenGui
     _window.MainFrame = MainFrame
-    _window.Content = Content
     _window.SetVisible = function(v)
         ScreenGui.Enabled = v
     end
 
-    local TabButtons = {}
+    local function ShowTab(tab)
+        for _, t in ipairs(_window.Tabs) do
+            local active = t == tab
+            t.Page.Visible = active
+            t.TabButton.BackgroundColor3 = active and Theme.ElementSelected or Theme.Section
+            t.TabButton.TextColor3 = active and Color3.new(1, 1, 1) or Theme.SubText
+        end
+        Content.CanvasPosition = Vector2.zero
+    end
 
     function _window:CreateTab(tabName)
         local page = Make("Frame", {
             Name = tabName,
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1,
-            LayoutOrder = #self.Tabs,
+            AutomaticSize = Enum.AutomaticSize.Y,
         })
-        page.Visible = true
         page.Parent = self.Content
 
         local layout = Make("UIListLayout", {
@@ -236,36 +224,39 @@ local function CreateWindow(config)
             Padding = UDim.new(0, 8),
         })
         layout.Parent = page
-        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            page.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-        end)
-        Make("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = page })
 
         local tabBtn = Make("TextButton", {
             Text = tabName,
-            Size = UDim2.new(0, 0, 0, 26),
+            Size = UDim2.new(0, 70, 0, 26),
             BackgroundColor3 = Theme.Section,
-            TextColor3 = Theme.Text,
+            TextColor3 = Theme.SubText,
             Font = Enum.Font.Gotham,
-            TextSize = 12,
+            TextSize = 13,
             BorderSizePixel = 0,
-            LayoutOrder = #self.Tabs,
         })
-        UICorner(tabBtn, 6)
+        Corner(tabBtn, 6)
+        tabBtn.Size = UDim2.new(0, math.max(50, tabBtn.TextBounds.X + 20), 0, 26)
         tabBtn.Parent = TabsFrame
-        TabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            tabBtn.Size = UDim2.new(0, math.max(44, tabBtn.TextBounds.X + 16), 0, 26)
-        end)
 
         local tab = {
             Name = tabName,
             Page = page,
+            TabButton = tabBtn,
             ElementCount = 0,
         }
 
+        tabBtn.MouseButton1Click:Connect(function()
+            ShowTab(tab)
+        end)
+
+        table.insert(self.Tabs, tab)
+        if #self.Tabs == 1 then
+            ShowTab(tab)
+        end
+
         function tab:CreateSection(title)
             self.ElementCount = self.ElementCount + 1
-            local s = Make("TextLabel", {
+            return Make("TextLabel", {
                 Text = title:upper(),
                 Size = UDim2.new(1, 0, 0, 20),
                 BackgroundTransparency = 1,
@@ -274,10 +265,24 @@ local function CreateWindow(config)
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 LayoutOrder = self.ElementCount,
+                Parent = self.Page,
             })
-            Make("UIPadding", { PaddingLeft = UDim.new(0, 4), Parent = s })
-            s.Parent = self.Page
-            return s
+        end
+
+        function tab:CreateParagraph(text)
+            self.ElementCount = self.ElementCount + 1
+            return Make("TextLabel", {
+                Text = text or "",
+                Size = UDim2.new(1, 0, 0, 30),
+                BackgroundTransparency = 1,
+                TextColor3 = Theme.SubText,
+                Font = Enum.Font.Gotham,
+                TextSize = 11,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                LayoutOrder = self.ElementCount,
+                Parent = self.Page,
+            })
         end
 
         function tab:CreateToggle(opts)
@@ -289,41 +294,38 @@ local function CreateWindow(config)
                 BackgroundColor3 = Theme.Element,
                 Size = UDim2.new(1, 0, 0, 34),
                 LayoutOrder = self.ElementCount,
-                Active = true,
+                Parent = self.Page,
             })
-            UICorner(row, 7)
-            UIStroke(row, Theme.Stroke, 1)
-            row.Parent = self.Page
+            Corner(row, 7)
+            Stroke(row, Theme.Stroke, 1)
 
-            local lbl = Make("TextLabel", {
+            Make("TextLabel", {
                 Text = opts.Name or "",
-                Size = UDim2.new(1, -48, 1, 0),
-                Position = UDim2.fromOffset(12, 0),
+                Size = UDim2.new(1, -50, 1, 0),
+                Position = UDim2.fromOffset(11, 0),
                 BackgroundTransparency = 1,
                 TextColor3 = Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                ClipsDescendants = true,
+                Parent = row,
             })
-            lbl.Parent = row
 
             local switch = Make("Frame", {
                 Size = UDim2.fromOffset(32, 18),
-                Position = UDim2.new(1, -42, 0.5, -9),
+                Position = UDim2.new(1, -44, 0.5, -9),
                 BackgroundColor3 = Theme.Section,
-                Active = true,
+                Parent = row,
             })
-            UICorner(switch, 9)
-            switch.Parent = row
+            Corner(switch, 9)
 
             local knob = Make("Frame", {
                 Size = UDim2.fromOffset(14, 14),
                 Position = UDim2.fromOffset(2, 2),
                 BackgroundColor3 = Color3.fromRGB(120, 120, 120),
+                Parent = switch,
             })
-            UICorner(knob, 7)
-            knob.Parent = switch
+            Corner(knob, 7)
 
             local function apply(s)
                 state = s
@@ -333,26 +335,25 @@ local function CreateWindow(config)
             end
             apply(state)
 
-            local alreadyFired = false
-            local function toggleState()
-                if alreadyFired then return end
-                alreadyFired = true
+            local lock = false
+            local function fire()
+                if lock then return end
+                lock = true
                 local new = not state
                 apply(new)
                 if opts.Callback then
                     pcall(opts.Callback, new)
                 end
-                task.defer(function() alreadyFired = false end)
+                task.defer(function() lock = false end)
             end
-
-            row.MouseButton1Click:Connect(toggleState)
-            switch.MouseButton1Click:Connect(toggleState)
+            row.MouseButton1Click:Connect(fire)
+            switch.MouseButton1Click:Connect(fire)
 
             row.MouseEnter:Connect(function()
-                TweenService:Create(row, TweenInfo.new(0.15), { BackgroundColor3 = Theme.ElementHover }):Play()
+                TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = Theme.ElementHover }):Play()
             end)
             row.MouseLeave:Connect(function()
-                TweenService:Create(row, TweenInfo.new(0.15), { BackgroundColor3 = Theme.Element }):Play()
+                TweenService:Create(row, TweenInfo.new(0.12), { BackgroundColor3 = Theme.Element }):Play()
             end)
 
             local toggle = {
@@ -367,9 +368,7 @@ local function CreateWindow(config)
                     return state
                 end,
             }
-            _window._RegisterBindable(toggle, row, opts.Name, opts.stateKey, function()
-                toggle:Set(not toggle:Get())
-            end)
+            _window:_RegisterBindable(toggle, row, opts.Name)
 
             return toggle
         end
@@ -386,135 +385,108 @@ local function CreateWindow(config)
                 BackgroundColor3 = Theme.Element,
                 Size = UDim2.new(1, 0, 0, 56),
                 LayoutOrder = self.ElementCount,
+                Parent = self.Page,
             })
-            UICorner(row, 7)
-            UIStroke(row, Theme.Stroke, 1)
-            row.Parent = self.Page
+            Corner(row, 7)
+            Stroke(row, Theme.Stroke, 1)
 
-            local lbl = Make("TextLabel", {
-                Text = (opts.Name or ""),
-                Size = UDim2.new(1, -66, 0, 20),
-                Position = UDim2.fromOffset(12, 6),
+            Make("TextLabel", {
+                Text = opts.Name or "",
+                Size = UDim2.new(1, -70, 0, 18),
+                Position = UDim2.fromOffset(11, 5),
                 BackgroundTransparency = 1,
                 TextColor3 = Theme.Text,
                 Font = Enum.Font.Gotham,
-                TextSize = 13,
+                TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = row,
             })
-            lbl.Parent = row
 
             local valLabel = Make("TextLabel", {
                 Text = tostring(math.floor(val + 0.5)),
-                Size = UDim2.new(0, 50, 0, 18),
-                Position = UDim2.new(1, -56, 0, 6),
+                Size = UDim2.new(0, 56, 0, 18),
+                Position = UDim2.new(1, -60, 0, 5),
                 BackgroundTransparency = 1,
                 TextColor3 = Theme.SubText,
                 Font = Enum.Font.GothamBold,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Right,
+                Parent = row,
             })
-            valLabel.Parent = row
 
             local track = Make("Frame", {
                 Size = UDim2.new(1, -24, 0, 8),
-                Position = UDim2.new(0.5, 0, 1, -20),
+                Position = UDim2.new(0.5, 0, 1, -18),
                 AnchorPoint = Vector2.new(0.5, 0),
                 BackgroundColor3 = Theme.Section,
+                Parent = row,
             })
-            UICorner(track, 4)
-            track.Parent = row
+            Corner(track, 4)
 
             local fill = Make("Frame", {
                 Size = UDim2.new(0, 0, 1, 0),
                 BackgroundColor3 = Theme.Accent,
+                Parent = track,
             })
-            UICorner(fill, 4)
-            fill.Parent = track
+            Corner(fill, 4)
 
             local grip = Make("Frame", {
                 Size = UDim2.fromOffset(14, 14),
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 Position = UDim2.fromOffset(0, 4),
                 BackgroundColor3 = Color3.new(1, 1, 1),
+                Parent = track,
             })
-            UICorner(grip, 7)
-            grip.Parent = track
+            Corner(grip, 7)
 
             local draggingSlider = false
 
-            local function updateFromMouse(mx)
-                local absTrack = track.AbsolutePosition
-                local absWidth = track.AbsoluteSize.X
-                local ratio = (mx - absTrack.X) / absWidth
+            local function update(x)
+                local trackPos = track.AbsolutePosition
+                local trackW = track.AbsoluteSize.X
+                local ratio = (x - trackPos.X) / trackW
                 ratio = math.clamp(ratio, 0, 1)
                 local raw = min + (max - min) * ratio
-                val = math.max(min, math.min(max, math.floor((raw + 0.0001) / inc + 0.5) * inc))
-                val = math.clamp(val, min, max)
-                fill.Size = UDim2.new(0, absWidth * ratio, 1, 0)
-                grip.Position = UDim2.fromScale(ratio, 0.5)
+                val = math.clamp(math.floor((raw + 0.0001) / inc + 0.5) * inc, min, max)
+                local r = (val - min) / (max - min)
+                fill.Size = UDim2.new(0, trackW * r, 1, 0)
+                grip.Position = UDim2.fromScale(r, 0.5)
                 valLabel.Text = tostring(math.floor(val + 0.5))
-            end
-
-            local function drawInitial()
-                local ratio = (val - min) / (max - min)
-                fill.Size = UDim2.new(0, (track.AbsoluteSize.X) * ratio, 1, 0)
-                grip.Position = UDim2.fromScale(ratio, 0.5)
             end
 
             track.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     draggingSlider = true
-                    updateFromMouse(UserInputService:GetMouseLocation().X)
+                    update(UserInputService:GetMouseLocation().X)
                 end
             end)
-            track.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 and draggingSlider then
                     draggingSlider = false
-                    if opts.Callback then
-                        pcall(opts.Callback, val)
-                    end
+                    if opts.Callback then pcall(opts.Callback, val) end
                 end
             end)
             RunService.RenderStepped:Connect(function()
                 if draggingSlider then
-                    updateFromMouse(UserInputService:GetMouseLocation().X)
+                    update(UserInputService:GetMouseLocation().X)
                 end
             end)
             task.defer(function()
                 task.wait()
-                drawInitial()
+                update(val)
             end)
 
             return {
                 Set = function(_, v)
                     val = math.clamp(v, min, max)
-                    valLabel.Text = tostring(math.floor(val + 0.5))
-                    local ratio = (val - min) / (max - min)
-                    fill.Size = UDim2.new(0, track.AbsoluteSize.X * ratio, 1, 0)
-                    grip.Position = UDim2.fromScale(ratio, 0.5)
+                    update(val)
                 end,
                 Get = function()
                     return val
                 end,
+                Destroyed = function()
+                end,
             }
-        end
-
-        function tab:CreateParagraph(opts)
-            opts = opts or {}
-            self.ElementCount = self.ElementCount + 1
-            local p = Make("TextLabel", {
-                Text = opts.Content or "",
-                Size = UDim2.new(1, 0, 0, 30),
-                BackgroundTransparency = 1,
-                TextColor3 = Theme.SubText,
-                Font = Enum.Font.Gotham,
-                TextSize = 11,
-                TextWrapped = true,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                LayoutOrder = self.ElementCount,
-            })
-            p.Parent = self.Page
-            return p
         end
 
         return tab
@@ -526,31 +498,27 @@ local function CreateWindow(config)
         table.insert(self.Bindables, opts)
     end
 
-    function _window:_RegisterBindable(toggle, row, name, stateKey, onToggle)
+    function _window:_RegisterBindable(toggle, row, name)
         table.insert(self.Bindables, {
             Toggle = toggle,
             Row = row,
             Name = name,
-            stateKey = stateKey,
-            OnToggle = onToggle,
         })
     end
 
-    GetHui(ScreenGui)
-    table.insert(WindowList, _window)
+    if syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+    end
+    ScreenGui.Parent = CoreGui
+
     return _window
 end
 
 UI.CreateWindow = CreateWindow
-UI.WindowList = WindowList
-UI.GetHui = GetHui
 UI.Theme = Theme
 
 return UI
-
 end)()
-
-
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -999,75 +967,111 @@ task.defer(function()
     wireMiddleClick()
 end)
 
+local function ShowNotification(text)
+    task.spawn(function()
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "NotifGUI"
+        sg.ResetOnSpawn = false
+        sg.DisplayOrder = 999
+        sg.IgnoreGuiInset = true
+        local f = Instance.new("Frame")
+        f.Size = UDim2.new(0, 300, 0, 30)
+        f.Position = UDim2.fromOffset(20, 40)
+        f.BackgroundColor3 = Color3.fromRGB(28, 28, 30)
+        f.BackgroundTransparency = 0.2
+        Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+        local t = Instance.new("TextLabel", f)
+        t.Size = UDim2.new(1, 0, 1, 0)
+        t.BackgroundTransparency = 1
+        t.Text = text
+        t.TextColor3 = Color3.new(1, 1, 1)
+        t.Font = Enum.Font.Gotham
+        t.TextSize = 13
+        t.TextWrapped = true
+        f.Parent = sg
+        sg.Parent = CoreGui
+        task.wait(3)
+        sg:Destroy()
+    end)
+end
+
+-- Confirm GUI built ok
+task.defer(function()
+    task.wait(0.3)
+    ShowNotification("SUPREME HUB loaded - Right Shift to toggle menu")
+end)
+
 RunService.RenderStepped:Connect(function()
-    local cam = workspace.CurrentCamera
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    if not cam then return end
+    pcall(function()
+        local cam = workspace.CurrentCamera
+        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+        if not cam then return end
 
-    refreshRayFilter()
+        refreshRayFilter()
 
-    local mousePos = UserInputService:GetMouseLocation()
+        local mousePos = UserInputService:GetMouseLocation()
 
-    FOVCircle.Visible = S.Show_FOV
-    if S.Show_FOV then
-        FOVCircle.Position = mousePos
-        FOVCircle.Radius = S.Aim_FOV
-    end
-
-    if S.Fullbright_Enabled then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-        Lighting.Brightness = 2
-    else
-        Lighting.Ambient = OriginalAmbient
-        Lighting.Brightness = OriginalBrightness
-    end
-
-    HideAllESP()
-    CleanupStaleESP()
-    local now = tick()
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local id = tostring(player.UserId)
-                DrawESP(id, player.Character, hrp, player.Name, player.Team, false)
-                if ESP_Cache[id] then ESP_Cache[id].LastDrawn = now end
-            end
+        FOVCircle.Visible = S.Show_FOV
+        if S.Show_FOV then
+            FOVCircle.Position = mousePos
+            FOVCircle.Radius = S.Aim_FOV
         end
-    end
 
-    for npc in pairs(Tracked_NPCs) do
-        local npcId = GetNPCId(npc)
-        if npcId then
-            if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                local hrp = npc:FindFirstChild("HumanoidRootPart")
+        if S.Fullbright_Enabled then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 2
+        else
+            Lighting.Ambient = OriginalAmbient
+            Lighting.Brightness = OriginalBrightness
+        end
+
+        HideAllESP()
+        CleanupStaleESP()
+        local now = tick()
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    DrawESP(npcId, npc, hrp, npc.Name, nil, true)
-                    if ESP_Cache[npcId] then ESP_Cache[npcId].LastDrawn = now end
+                    local id = tostring(player.UserId)
+                    DrawESP(id, player.Character, hrp, player.Name, player.Team, false)
+                    if ESP_Cache[id] then ESP_Cache[id].LastDrawn = now end
                 end
-            else
-                RemoveNPC(npc)
             end
         end
-    end
 
-    if S.Aimbot_Enabled and mousemoverel then
-        local aimTarget = GetClosestTarget()
-        if aimTarget then
-            local aimPos = aimTarget.Position
-            if S.Prediction_Enabled then
-                local d = (aimPos - cam.CFrame.Position).Magnitude
-                local speed = math.max(S.Bullet_Speed, MIN_BULLET_SPEED)
-                aimPos = aimPos + (aimTarget.AssemblyLinearVelocity * (d / speed))
-            end
-            local screenPos, onScreen = cam:WorldToViewportPoint(aimPos)
-            if onScreen then
-                local moveX = (screenPos.X - mousePos.X) * S.Aim_Smoothing
-                local moveY = (screenPos.Y - mousePos.Y) * S.Aim_Smoothing
-                mousemoverel(moveX, moveY)
+        for npc in pairs(Tracked_NPCs) do
+            local npcId = GetNPCId(npc)
+            if npcId then
+                if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+                    local hrp = npc:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        DrawESP(npcId, npc, hrp, npc.Name, nil, true)
+                        if ESP_Cache[npcId] then ESP_Cache[npcId].LastDrawn = now end
+                    end
+                else
+                    RemoveNPC(npc)
+                end
             end
         end
-    end
+
+        if S.Aimbot_Enabled and mousemoverel then
+            local aimTarget = GetClosestTarget()
+            if aimTarget then
+                local aimPos = aimTarget.Position
+                if S.Prediction_Enabled then
+                    local d = (aimPos - cam.CFrame.Position).Magnitude
+                    local speed = math.max(S.Bullet_Speed, MIN_BULLET_SPEED)
+                    aimPos = aimPos + (aimTarget.AssemblyLinearVelocity * (d / speed))
+                end
+                local screenPos, onScreen = cam:WorldToViewportPoint(aimPos)
+                if onScreen then
+                    local moveX = (screenPos.X - mousePos.X) * S.Aim_Smoothing
+                    local moveY = (screenPos.Y - mousePos.Y) * S.Aim_Smoothing
+                    mousemoverel(moveX, moveY)
+                end
+            end
+        end
+    end)
 end)
 
